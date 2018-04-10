@@ -7,8 +7,6 @@ This package is currently under heavly construction.
 
 #### Developer version:
 
-```{r}
-devtools::install_github("schalkdaniel/compboost")
 ```r
 devtools::install_github("chkue/Sarim")
 ```
