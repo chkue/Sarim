@@ -1,11 +1,20 @@
 Package: Sarim
 Type: Package
-Title: What the package does (short line)
-Version: 1.0
+Title: Structured additive regression using iterative methods
+Version: 0.1
 Date: 2018-04-08
-Author: Who wrote it
-Maintainer: Who to complain to <yourfault@somewhere.net>
-Description: More about what it does (maybe more than one line)
-License: What license is it under?
-Imports: Rcpp (>= 0.12.15), RcppEigen (>= 0.3.3.3.1)
-LinkingTo: Rcpp, RcppEigen
+Author: Christopher Kuester
+Maintainer: Christopher Kuester <chkue0@gmail.com>
+Description: Using MCMC algorithm for fitting additive regression model to large-scale problems.
+License: GPL-3
+Imports: 
+    Rcpp (>= 0.12.15), 
+    RcppEigen (>= 0.3.3.3.1),
+    RcppProgress,
+    Matrix,
+    splines
+LinkingTo: 
+    Rcpp, 
+    RcppEigen, 
+    RcppProgress
+RoxygenNote: 6.0.1

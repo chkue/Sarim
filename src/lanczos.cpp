@@ -71,7 +71,6 @@ Lanczos algorithm (const Eigen::SparseMatrix<double> & Q,
     
     Eigen::VectorXd z = random_gauss(n);
     
-    
     Eigen::MatrixXd V (n, m + 1);
     
     V.col(0) = z / z.norm();
@@ -126,6 +125,7 @@ Lanczos algorithm (const Eigen::SparseMatrix<double> & Q,
         }
         
     }
+    
     lanczos_solver.x = simplylltF2.solve(x);
     lanczos_solver.error = err;
     lanczos_solver.Iteration = iter;

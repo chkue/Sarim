@@ -6,55 +6,88 @@
 
 using namespace Rcpp;
 
-// rcppeigen_hello_world
-Eigen::MatrixXd rcppeigen_hello_world();
-RcppExport SEXP _Sarim_rcppeigen_hello_world() {
+// icholCpp
+Rcpp::List icholCpp(const Eigen::MappedSparseMatrix<double>& Q);
+RcppExport SEXP _Sarim_icholCpp(SEXP QSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(rcppeigen_hello_world());
+    Rcpp::traits::input_parameter< const Eigen::MappedSparseMatrix<double>& >::type Q(QSEXP);
+    rcpp_result_gen = Rcpp::wrap(icholCpp(Q));
     return rcpp_result_gen;
 END_RCPP
 }
-// rcppeigen_outerproduct
-Eigen::MatrixXd rcppeigen_outerproduct(const Eigen::VectorXd& x);
-RcppExport SEXP _Sarim_rcppeigen_outerproduct(SEXP xSEXP) {
+// lanczosCpp
+Rcpp::List lanczosCpp(const Eigen::MappedSparseMatrix<double>& Q, const int& m, const Eigen::MappedSparseMatrix<double>& F1, const Eigen::MappedSparseMatrix<double>& F2, const double& thr);
+RcppExport SEXP _Sarim_lanczosCpp(SEXP QSEXP, SEXP mSEXP, SEXP F1SEXP, SEXP F2SEXP, SEXP thrSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(rcppeigen_outerproduct(x));
+    Rcpp::traits::input_parameter< const Eigen::MappedSparseMatrix<double>& >::type Q(QSEXP);
+    Rcpp::traits::input_parameter< const int& >::type m(mSEXP);
+    Rcpp::traits::input_parameter< const Eigen::MappedSparseMatrix<double>& >::type F1(F1SEXP);
+    Rcpp::traits::input_parameter< const Eigen::MappedSparseMatrix<double>& >::type F2(F2SEXP);
+    Rcpp::traits::input_parameter< const double& >::type thr(thrSEXP);
+    rcpp_result_gen = Rcpp::wrap(lanczosCpp(Q, m, F1, F2, thr));
     return rcpp_result_gen;
 END_RCPP
 }
-// rcppeigen_innerproduct
-double rcppeigen_innerproduct(const Eigen::VectorXd& x);
-RcppExport SEXP _Sarim_rcppeigen_innerproduct(SEXP xSEXP) {
+// sarim_gibbs
+Rcpp::List sarim_gibbs(const Eigen::Map<Eigen::VectorXd>& y, const Eigen::Map<Eigen::VectorXd>& eta_first, const Rcpp::List& Z, const Rcpp::List& K, const Rcpp::List& gamma, const Rcpp::List& ka_start, const Rcpp::List& ka_values, const Rcpp::List& solver, const double& sigma, const Eigen::Map<Eigen::VectorXd>& sigma_values, const int& nIter, const int& m, const double& thr, const bool& display_progress);
+RcppExport SEXP _Sarim_sarim_gibbs(SEXP ySEXP, SEXP eta_firstSEXP, SEXP ZSEXP, SEXP KSEXP, SEXP gammaSEXP, SEXP ka_startSEXP, SEXP ka_valuesSEXP, SEXP solverSEXP, SEXP sigmaSEXP, SEXP sigma_valuesSEXP, SEXP nIterSEXP, SEXP mSEXP, SEXP thrSEXP, SEXP display_progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(rcppeigen_innerproduct(x));
+    Rcpp::traits::input_parameter< const Eigen::Map<Eigen::VectorXd>& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< const Eigen::Map<Eigen::VectorXd>& >::type eta_first(eta_firstSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type Z(ZSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type K(KSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type gamma(gammaSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type ka_start(ka_startSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type ka_values(ka_valuesSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type solver(solverSEXP);
+    Rcpp::traits::input_parameter< const double& >::type sigma(sigmaSEXP);
+    Rcpp::traits::input_parameter< const Eigen::Map<Eigen::VectorXd>& >::type sigma_values(sigma_valuesSEXP);
+    Rcpp::traits::input_parameter< const int& >::type nIter(nIterSEXP);
+    Rcpp::traits::input_parameter< const int& >::type m(mSEXP);
+    Rcpp::traits::input_parameter< const double& >::type thr(thrSEXP);
+    Rcpp::traits::input_parameter< const bool& >::type display_progress(display_progressSEXP);
+    rcpp_result_gen = Rcpp::wrap(sarim_gibbs(y, eta_first, Z, K, gamma, ka_start, ka_values, solver, sigma, sigma_values, nIter, m, thr, display_progress));
     return rcpp_result_gen;
 END_RCPP
 }
-// rcppeigen_bothproducts
-Rcpp::List rcppeigen_bothproducts(const Eigen::VectorXd& x);
-RcppExport SEXP _Sarim_rcppeigen_bothproducts(SEXP xSEXP) {
+// sarim_mcmc
+Rcpp::List sarim_mcmc(const Eigen::Map<Eigen::VectorXd>& y, const Eigen::Map<Eigen::VectorXd>& eta_first, const Rcpp::List& Z, const Rcpp::List& K, const Rcpp::List& gamma, const Rcpp::List& ka_start, const Rcpp::List& ka_values, const Rcpp::List& solver, const Rcpp::String& family, const Rcpp::String& link, const int& nIter, const double& Ntrials, const int& m, const double& thr, const bool& display_progress, const Rcpp::String& constraint);
+RcppExport SEXP _Sarim_sarim_mcmc(SEXP ySEXP, SEXP eta_firstSEXP, SEXP ZSEXP, SEXP KSEXP, SEXP gammaSEXP, SEXP ka_startSEXP, SEXP ka_valuesSEXP, SEXP solverSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP nIterSEXP, SEXP NtrialsSEXP, SEXP mSEXP, SEXP thrSEXP, SEXP display_progressSEXP, SEXP constraintSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(rcppeigen_bothproducts(x));
+    Rcpp::traits::input_parameter< const Eigen::Map<Eigen::VectorXd>& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< const Eigen::Map<Eigen::VectorXd>& >::type eta_first(eta_firstSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type Z(ZSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type K(KSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type gamma(gammaSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type ka_start(ka_startSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type ka_values(ka_valuesSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type solver(solverSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::String& >::type family(familySEXP);
+    Rcpp::traits::input_parameter< const Rcpp::String& >::type link(linkSEXP);
+    Rcpp::traits::input_parameter< const int& >::type nIter(nIterSEXP);
+    Rcpp::traits::input_parameter< const double& >::type Ntrials(NtrialsSEXP);
+    Rcpp::traits::input_parameter< const int& >::type m(mSEXP);
+    Rcpp::traits::input_parameter< const double& >::type thr(thrSEXP);
+    Rcpp::traits::input_parameter< const bool& >::type display_progress(display_progressSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::String& >::type constraint(constraintSEXP);
+    rcpp_result_gen = Rcpp::wrap(sarim_mcmc(y, eta_first, Z, K, gamma, ka_start, ka_values, solver, family, link, nIter, Ntrials, m, thr, display_progress, constraint));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_Sarim_rcppeigen_hello_world", (DL_FUNC) &_Sarim_rcppeigen_hello_world, 0},
-    {"_Sarim_rcppeigen_outerproduct", (DL_FUNC) &_Sarim_rcppeigen_outerproduct, 1},
-    {"_Sarim_rcppeigen_innerproduct", (DL_FUNC) &_Sarim_rcppeigen_innerproduct, 1},
-    {"_Sarim_rcppeigen_bothproducts", (DL_FUNC) &_Sarim_rcppeigen_bothproducts, 1},
+    {"_Sarim_icholCpp", (DL_FUNC) &_Sarim_icholCpp, 1},
+    {"_Sarim_lanczosCpp", (DL_FUNC) &_Sarim_lanczosCpp, 5},
+    {"_Sarim_sarim_gibbs", (DL_FUNC) &_Sarim_sarim_gibbs, 14},
+    {"_Sarim_sarim_mcmc", (DL_FUNC) &_Sarim_sarim_mcmc, 16},
     {NULL, NULL, 0}
 };
 

@@ -49,6 +49,7 @@
 //' link = "logit"/"log" is choosen respectively.
 //' 
 //' @param y Response variable, given as a vector, use as.numeric() if error occur.
+//' @param eta_first First calculation of eta = Z_1 * gamma_1 + ... + Z_p * gamma_p
 //' @param Z Design matrices of the covariates, given as list with sparse matrix, 
 //'          use e.g. as(matrix, "dgCMatrix") from library(Matrix). Use for example the
 //'          useful sx()-function for smoothing.
@@ -72,12 +73,13 @@
 //' @param thr threshold when the Lanczos-algorithm should stop
 //' 
 //' @return Return a list of values:
-//' coef_results = result of the estimated coefficient, output given as matrix
-//' kappa_result = result of the estimated kappa (precision) parameters, output given as vector
+//' "coef_results" = result of the estimated coefficient, output given as matrix;
+//' "kappa_result" = result of the estimated kappa (precision) parameters, output given as vector
 //' 
 //' @export
 // [[Rcpp::export]]
 Rcpp::List sarim_mcmc(const Eigen::Map<Eigen::VectorXd> & y,
+                      const Eigen::Map<Eigen::VectorXd> & eta_first,
                       const Rcpp::List & Z,
                       const Rcpp::List & K,
                       const Rcpp::List & gamma,
@@ -136,19 +138,19 @@ Rcpp::List sarim_mcmc(const Eigen::Map<Eigen::VectorXd> & y,
         kappa_results[i] = kappa_results_tmp;
     };
     
-    
-    
-    // calculate eta the first time, eta = Z_1 * gamma_1 + ... + Z_p * gamma_p
-    Eigen::VectorXd eta = Eigen::VectorXd::Zero(n);
+    // save eta from first time calculation
+    Eigen::VectorXd eta = eta_first;
     // eta_tmp for calculating eta_{-k}
-    Eigen::VectorXd eta_tmp = eta;
-    Eigen::VectorXd eta_tmp_proposal = eta;
+    Eigen::VectorXd eta_tmp = Eigen::VectorXd::Zero(n);
+    Eigen::VectorXd eta_tmp_proposal = eta_tmp;
     
-    for (int i = 0; i < p; ++i) {
-        Eigen::SparseMatrix<double> Z_tmp = Z(i);
-        Eigen::VectorXd gamma_tmp = gamma(i);
-        eta = eta + Z_tmp * gamma_tmp;
-    };
+    /* too slow?!
+     for (int i = 0; i < p; ++i) {
+     Eigen::SparseMatrix<double> Z_tmp = Z(i);
+     Eigen::VectorXd gamma_tmp = gamma(i);
+     eta = eta + Z_tmp * gamma_tmp;
+     };
+     */
     
     
     // initialise values, required for computation

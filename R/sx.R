@@ -58,17 +58,19 @@ sx <- function(x = x, knots = 5, degree = 3, penalty = "rw2", solver = "rue",
         mat <- as.matrix(rep(0, nrow(Z)))
         if (penalty != "gmrf")
             stop('If Z is given, choose penalty as gmrf, i.e. penalty = "gmrf" ')
-        if (solver != "lanczos") {
-            answer <- readline(prompt = "Do you want to use 'rue' (y/n)? If 'no', the 'lanczos-algo' is used: ")
-            if (answer == "y") {
-                print("solving with 'rue'")
-                attr(mat, "solver") <- "rue"
-            }
-            if (answer == "n") {
-                print("solving with 'lanczos'")
-                attr(mat, "solver") <- "lanczos"
-            }
-        }
+        
+        attr(mat, "solver") <- solver
+        # if (solver != "lanczos") {
+        #     answer <- readline(prompt = "Do you want to use 'rue' (y/n)? If 'no', the 'lanczos-algo' is used: ")
+        #     if (answer == "y") {
+        #         print("solving with 'rue'")
+        #         attr(mat, "solver") <- "rue"
+        #     }
+        #     if (answer == "n") {
+        #         print("solving with 'lanczos'")
+        #         attr(mat, "solver") <- "lanczos"
+        #     }
+        # }
         
         attr(mat, "penalty") <- penalty
         attr(mat, "K") <- K

@@ -33,6 +33,7 @@ sarim <- function(formula, data = list(), intercept = "TRUE", nIter = 1000L, bur
     gammaList <- list()
     solverList <- list()
     kappa_startList <- list()
+    etaList <- list()
     
     check_intercept <- list("TRUE", "FALSE")
     if (!is.element(intercept, check_intercept))
@@ -94,7 +95,7 @@ sarim <- function(formula, data = list(), intercept = "TRUE", nIter = 1000L, bur
                     K[[i]] <- as(attr(mf[[i]], "K"), "dgCMatrix")
                     Z[[i]] <- as(attr(mf[[i]], "Z"), "dgCMatrix")
                 }
-                
+                etaList[[i]] <- Z[[i]] %*% gammaList[[i]]
             }
             if (is.vector(mf[[i]])) {
                 kappa_startList[[i]] <- attr(mf[[i]], "ka_start")
@@ -103,6 +104,7 @@ sarim <- function(formula, data = list(), intercept = "TRUE", nIter = 1000L, bur
                 kappaList[[i]] <- c(1, 0.0001)
                 K[[i]] <- as(as.matrix(1), "dgCMatrix")
                 Z[[i]] <- as(as.matrix(mf[[i]]), "dgCMatrix")
+                etaList[[i]] <- Z[[i]] %*% gammaList[[i]]
             }
         } else {
             if (!is.vector(mf[[i]])) {
@@ -135,6 +137,7 @@ sarim <- function(formula, data = list(), intercept = "TRUE", nIter = 1000L, bur
                     K[[i - 1]] <- as(attr(mf[[i]], "K"), "dgCMatrix")
                     Z[[i - 1]] <- as(attr(mf[[i]], "Z"), "dgCMatrix")
                 }
+                etaList[[i - 1]] <- Z[[i - 1]] %*% gammaList[[i - 1]]
                 
             }
             if (is.vector(mf[[i]])) {
@@ -144,6 +147,7 @@ sarim <- function(formula, data = list(), intercept = "TRUE", nIter = 1000L, bur
                 kappaList[[i - 1]] <- c(1, 0.0001)
                 K[[i - 1]] <- as(as.matrix(1), "dgCMatrix")
                 Z[[i - 1]] <- as(as.matrix(mf[[i]]), "dgCMatrix")
+                etaList[[i - 1]] <- Z[[i - 1]] %*% gammaList[[i - 1]]
             }
         }
         
@@ -153,23 +157,29 @@ sarim <- function(formula, data = list(), intercept = "TRUE", nIter = 1000L, bur
     sigmavalues <- c(sigma_a, sigma_b)
     sigma <- as.numeric(sigma)
     
+    # calculate eta the first time
+    eta_first <- rep(0, length(y))
+    for (i in 1:length(Z)) eta_first = eta_first + etaList[[i]]
+    eta_first <- as.numeric(eta_first)
+    
+    
+    # Using Gibbs or Gibbs-with-MH depending on family
     if (family == "gaussian") {
-        out <- sarim::sarim_gibbs(y, Z = Z, K = K, gamma = gammaList,
+        out <- Sarim::sarim_gibbs(y, eta_first, Z = Z, K = K, gamma = gammaList,
                                   ka_start = kappa_startList, ka_values = kappaList,
                                   solver = solverList,
                                   sigma = sigma, sigma_values = sigmavalues,
-                                  nIter = nIter, burnin = burnin,
+                                  nIter = nIter,
                                   m = m, thr = thr)
         list_out <- list("coef_results" = out$coef_results,
                          "kappa_results" = out$kappa_results,
-                         "sigma_results" = out$sigma_results,
-                         "mu_results" = out$mu_results)
+                         "sigma_results" = out$sigma_results)
     }
     if (family != "gaussian") {
-        out <- sarim::sarim_mcmc(y, Z = Z, K = K, gamma = gammaList,
+        out <- Sarim::sarim_mcmc(y, eta_first, Z = Z, K = K, gamma = gammaList,
                                  ka_start = kappa_startList, ka_values = kappaList,
                                  solver = solverList, family = family, link = link,
-                                 nIter = nIter, burnin = burnin,
+                                 nIter = nIter,
                                  m = m, thr = thr)
         
         list_out <- list("coef_results" = out$coef_results,
