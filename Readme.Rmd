@@ -2,3 +2,8 @@
 # Structured additive regression model using interative methods
 
 This package is currently under heavly construction.
+
+# Installation
+```{r}
+devtools::install_github("schalkdaniel/compboost")
+```
