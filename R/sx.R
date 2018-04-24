@@ -23,18 +23,17 @@
 #' could be choose for example as intrinsic Gaussian Markov random field (IGMRF).
 #' 
 #' @export
-sx <- function(x = x, knots = 5, degree = 3, penalty = "rw2", solver = "rue",
-               ka_start = 1, ka_a = 0.0001, ka_b = 0.0001,
-               gamma = NULL, Z = NULL, K = NULL) {
-    require(splines)
+sx <- function(x = x, knots = 5, penalty = "rw2", degree = 3, solver = "rue", 
+               ka_start = 1, ka_a = 1, ka_b = 0.0001,
+               gamma = NULL, Z = NULL, K = NULL, ...) {
     require(Matrix)
     penlist <- list("identity", "rw1", "rw2", "gmrf")
-    if (!is.element(penalty, penlist))
+    if (!is.element(penalty, penlist)) 
         stop('The penalty is unknown, use "identity", "rw1", "rw2" or "gmrf" ')
     
     solvlist <- list("rue", "lanczos")
-    if (!is.element(solver, solvlist))
-        stop('The solver is unknown, use "rue" (as default) or "lanczos",
+    if (!is.element(solver, solvlist)) 
+        stop('The solver is unknown, use "rue" (as default) or "lanczos", 
              iff Z is a BIG MATRIX ')
     
     if ( (knots == 1) && (is.null(Z)) ) {
@@ -45,32 +44,20 @@ sx <- function(x = x, knots = 5, degree = 3, penalty = "rw2", solver = "rue",
     }
     
     if ( (knots > 1) && (is.null(Z)) ) {
+        require(splines)
         if (knots < 3) {
-            stop('Choose more knots, default is "knots = 5", recommended is also more
-                 for example "knots = 30", or choose "knots = 1" for one column covariate ')
+            stop('Choose more knots, default is "knots = 5", recommended is also more 
+                             for example "knots = 30", or choose "knots = 1" for one column covariate ')
         }
         mat <- splines::bs(x = x, df = knots, degree = degree)
         attr(mat, "penalty") <- penalty
-        }
+    }
     
     
     if (!is.null(Z)) {
         mat <- as.matrix(rep(0, nrow(Z)))
-        if (penalty != "gmrf")
+        if (penalty != "gmrf") 
             stop('If Z is given, choose penalty as gmrf, i.e. penalty = "gmrf" ')
-        
-        attr(mat, "solver") <- solver
-        # if (solver != "lanczos") {
-        #     answer <- readline(prompt = "Do you want to use 'rue' (y/n)? If 'no', the 'lanczos-algo' is used: ")
-        #     if (answer == "y") {
-        #         print("solving with 'rue'")
-        #         attr(mat, "solver") <- "rue"
-        #     }
-        #     if (answer == "n") {
-        #         print("solving with 'lanczos'")
-        #         attr(mat, "solver") <- "lanczos"
-        #     }
-        # }
         
         attr(mat, "penalty") <- penalty
         attr(mat, "K") <- K
