@@ -9,23 +9,24 @@
 #' @export
 K_matrix <- function(dimension, penalty, data) {
     require(Matrix)
-    
     # Identity
-    if (penalty == "identity")
+    if (penalty == "identity") {
         S = matrix(c(1))
+    }
     
     # Random Walk 1st order
     if (penalty == "rw1") {
-        P <- diff(diag(dimension), differences = 1)
+        P <- diff(.symDiagonal(dimension), differences = 1)
         S <- crossprod(P, P)
     }
     
     # Random Walk 2nd order
     if (penalty == "rw2") {
-        P <- diff(diag(dimension), differences = 2)
+        P <- diff(.symDiagonal(dimension), differences = 2)
         S <- crossprod(P, P)
-    }
+    } 
     
+    # Gaussian Markov random field
     if (penalty == "gmrf") {
         S <- data
     }
