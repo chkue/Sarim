@@ -89,9 +89,9 @@ Rcpp::List sarim_mcmc(const Eigen::Map<Eigen::VectorXd> & y,
                       const Rcpp::String & family,
                       const Rcpp::String & link,
                       const int & nIter,
-                      const double & Ntrials = 1,
-                      const int & m = 50,
-                      const double & thr = 0.0001,
+                      const double & Ntrials,
+                      const int & m,
+                      const double & thr,
                       const bool & display_progress = true,
                       const Rcpp::String & constraint = "No") {
     
@@ -162,6 +162,8 @@ Rcpp::List sarim_mcmc(const Eigen::Map<Eigen::VectorXd> & y,
     Eigen::VectorXd ll, ll_proposal;
     Eigen::VectorXd proposal_c_given_p, proposal_p_given_c, prior_c, prior_p;
     Eigen::VectorXd alpha, u;
+    
+    Eigen::SparseMatrix<double> M, Mt;
     
     
     // Initialise working observations and weights
@@ -237,9 +239,8 @@ Rcpp::List sarim_mcmc(const Eigen::Map<Eigen::VectorXd> & y,
                 gamma_proposal = x + mu_tmp;
                 
             } else {
-                Eigen::SparseMatrix<double> M;
                 M = ichol(Q);
-                Eigen::SparseMatrix<double> Mt = M.transpose();
+                Mt = M.transpose();
                 Lanczos lanczos_solver = algorithm(Q, m, M, Mt, thr);
                 Eigen::VectorXd x = lanczos_solver.x;
                 if (lanczos_solver.Iteration >= m) {
@@ -254,9 +255,9 @@ Rcpp::List sarim_mcmc(const Eigen::Map<Eigen::VectorXd> & y,
                 gamma_proposal = x + mu_tmp;
                 
             };
-            // compute
-            eta_tmp_proposal = eta_tmp + Z_k * (gamma_proposal - mu);
             
+            // compute eta and loglikelihood
+            eta_tmp_proposal = eta_tmp + Z_k * (gamma_proposal - mu);
             ll_proposal = loglike(y, eta_tmp_proposal, family, link, Ntrials);
             
             // compute p(ga_c | \mu^p, Q^p)
