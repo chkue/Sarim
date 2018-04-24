@@ -16,19 +16,20 @@ lanczosCpp <- function(Q, m, F1, F2, thr) {
 #' link = "identity" is choosen in sarim()-function
 #' 
 #' @param y Response variable, given as a vector, use as.numeric() if error occur.
-#' @param eta_first First calculation of eta = Z_1 * gamma_1 + ... + Z_p * gamma_p
 #' @param Z Design matrices of the covariates, given as list with sparse matrix, 
 #'          use e.g. as(matrix, "dgCMatrix") from library(Matrix). Use for example the
 #'          useful sx()-function for smoothing.
 #' @param K Structure/penalty matrices for the coefficients, given as list, 
 #'          also with sparse matrix. Can be choosen in sx()-function.
+#' @param K_rank List of ranks of the structure/penalty matrix.
 #' @param gamma List of coefficient, given as vector. Row-length need to be the 
 #'          same as the columns of Z. Per starting default from uniform distribution 
 #'          is sampled, but a specific starting value can be given, using the sx()-function
 #'          in the formular, e.g. y ~ sx(x1, gamma = c(rep(1, 5))).
 #' @param kappa Start value for kappa, given as a list and double/float value.
 #' @param kappa_values Coefficients for kappa, given as list within as vector c(kappa_a, kappa_b).
-#' @param solver List of the solvers ("rue" or "lanczos") for sampling from a gaussian distribution, i.e. gamma ~ N(eta, Q)
+#' @param solver List of the solvers ("rue" or "lanczos") for sampling from a 
+#'          gaussian distribution, i.e. gamma ~ N(eta, Q)
 #'          with Q as precision matrix. Can be choosen in sx()-function.
 #' @param sigma Start value for sigma given as numeric value, variance of response y. 
 #' @param sigma_values Values for sigma ~ IG(sigma_a, sigma_b) given as a vector c(sigma_a, sigma_b), 
@@ -43,8 +44,8 @@ lanczosCpp <- function(Q, m, F1, F2, thr) {
 #' "sigma_results" = result of the sigma value, output given as vector
 #' 
 #' @export
-sarim_gibbs <- function(y, eta_first, Z, K, gamma, ka_start, ka_values, solver, sigma, sigma_values, nIter, m = 50L, thr = 0.0001, display_progress = TRUE) {
-    .Call('_Sarim_sarim_gibbs', PACKAGE = 'Sarim', y, eta_first, Z, K, gamma, ka_start, ka_values, solver, sigma, sigma_values, nIter, m, thr, display_progress)
+sarim_gibbs <- function(y, Z, K, K_rank, gamma, ka_start, ka_values, solver, sigma, sigma_values, nIter, m, thr, display_progress = TRUE) {
+    .Call('_Sarim_sarim_gibbs', PACKAGE = 'Sarim', y, Z, K, K_rank, gamma, ka_start, ka_values, solver, sigma, sigma_values, nIter, m, thr, display_progress)
 }
 
 #' MCMC sampler with Metropolis-Hasting step in Gibbs-sampler for use in sarim()-function
@@ -83,7 +84,7 @@ sarim_gibbs <- function(y, eta_first, Z, K, gamma, ka_start, ka_values, solver, 
 #' "kappa_result" = result of the estimated kappa (precision) parameters, output given as vector
 #' 
 #' @export
-sarim_mcmc <- function(y, eta_first, Z, K, gamma, ka_start, ka_values, solver, family, link, nIter, Ntrials = 1, m = 50L, thr = 0.0001, display_progress = TRUE, constraint = "No") {
+sarim_mcmc <- function(y, eta_first, Z, K, gamma, ka_start, ka_values, solver, family, link, nIter, Ntrials, m, thr, display_progress = TRUE, constraint = "No") {
     .Call('_Sarim_sarim_mcmc', PACKAGE = 'Sarim', y, eta_first, Z, K, gamma, ka_start, ka_values, solver, family, link, nIter, Ntrials, m, thr, display_progress, constraint)
 }
 
