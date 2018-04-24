@@ -15,19 +15,20 @@
 //' link = "identity" is choosen in sarim()-function
 //' 
 //' @param y Response variable, given as a vector, use as.numeric() if error occur.
-//' @param eta_first First calculation of eta = Z_1 * gamma_1 + ... + Z_p * gamma_p
 //' @param Z Design matrices of the covariates, given as list with sparse matrix, 
 //'          use e.g. as(matrix, "dgCMatrix") from library(Matrix). Use for example the
 //'          useful sx()-function for smoothing.
 //' @param K Structure/penalty matrices for the coefficients, given as list, 
 //'          also with sparse matrix. Can be choosen in sx()-function.
+//' @param K_rank List of ranks of the structure/penalty matrix.
 //' @param gamma List of coefficient, given as vector. Row-length need to be the 
 //'          same as the columns of Z. Per starting default from uniform distribution 
 //'          is sampled, but a specific starting value can be given, using the sx()-function
 //'          in the formular, e.g. y ~ sx(x1, gamma = c(rep(1, 5))).
 //' @param kappa Start value for kappa, given as a list and double/float value.
 //' @param kappa_values Coefficients for kappa, given as list within as vector c(kappa_a, kappa_b).
-//' @param solver List of the solvers ("rue" or "lanczos") for sampling from a gaussian distribution, i.e. gamma ~ N(eta, Q)
+//' @param solver List of the solvers ("rue" or "lanczos") for sampling from a 
+//'          gaussian distribution, i.e. gamma ~ N(eta, Q)
 //'          with Q as precision matrix. Can be choosen in sx()-function.
 //' @param sigma Start value for sigma given as numeric value, variance of response y. 
 //' @param sigma_values Values for sigma ~ IG(sigma_a, sigma_b) given as a vector c(sigma_a, sigma_b), 
@@ -44,9 +45,9 @@
 //' @export
 // [[Rcpp::export]]
 Rcpp::List sarim_gibbs(const Eigen::Map<Eigen::VectorXd> & y,
-                       const Eigen::Map<Eigen::VectorXd> & eta_first,
                        const Rcpp::List & Z,
                        const Rcpp::List & K,
+                       const Rcpp::List & K_rank,
                        const Rcpp::List & gamma,
                        const Rcpp::List & ka_start,
                        const Rcpp::List & ka_values,
@@ -54,8 +55,8 @@ Rcpp::List sarim_gibbs(const Eigen::Map<Eigen::VectorXd> & y,
                        const double & sigma,
                        const Eigen::Map<Eigen::VectorXd> & sigma_values,
                        const int & nIter,
-                       const int & m = 50,
-                       const double & thr = 0.0001,
+                       const int & m,
+                       const double & thr,
                        const bool & display_progress = true) {
     
     
@@ -66,61 +67,47 @@ Rcpp::List sarim_gibbs(const Eigen::Map<Eigen::VectorXd> & y,
     // number of observations
     int n = y.rows();
     
-    // calculate rank of structure matrices and save in vector K_rk
-    Eigen::VectorXd K_rk(p);
-    for (int i = 0; i < p; ++i) {
-        Eigen::SparseMatrix<double> K_tmp = K(i);
-        K_rk(i) = rank_calculation(K_tmp);
-    }
-    
-    
     // generate list for coefficients 
     Rcpp::List coef_results(p);
     // and corresponding matrices for coefficient-result-output
     for (int i = 0; i < p; ++i) {
         Eigen::VectorXd gamma_tmp = gamma(i);
         int k_size = gamma_tmp.size();
-        Eigen::MatrixXd gamma_results(k_size, 1); // initialise with one column and add +1column iteratively
+        Eigen::MatrixXd gamma_results = Eigen::MatrixXd::Zero(k_size, nIter + 1);
         gamma_results.col(0) = gamma_tmp;
         coef_results[i] = gamma_results;
     };
-    
-    
-    Eigen::VectorXd tmp(nIter + 1);
     
     // generate list for kappa
     Rcpp::List kappa_results(p);
     // and corresponding vector for result-output
     for (int i = 0; i < p; ++i) {
         double kappa_tmp = ka_start(i);
-        Eigen::VectorXd kappa_results_tmp = tmp;
+        Eigen::VectorXd kappa_results_tmp(nIter + 1);
         kappa_results_tmp(0) = kappa_tmp;
         kappa_results[i] = kappa_results_tmp;
     };
     
-    // save eta from first time calculation
-    Eigen::VectorXd eta = eta_first;
+    // calculate eta the first time, eta = Z_1 * gamma_1 + ... + Z_p * gamma_p
+    Eigen::VectorXd eta = Eigen::VectorXd::Zero(n);
     // eta_tmp for calculating eta_{-k}
-    Eigen::VectorXd eta_tmp = Eigen::VectorXd::Zero(n);
+    Eigen::VectorXd eta_tmp = eta;
     
     
-    /* too slow?!
     for (int i = 0; i < p; ++i) {
         Eigen::SparseMatrix<double> Z_tmp = Z(i);
         Eigen::VectorXd gamma_tmp = gamma(i);
         eta = eta + Z_tmp * gamma_tmp;
     };
-    */
-    
     
     // initialise results vector for sigma and set first value to starting value
-    Eigen::VectorXd sigma_results = tmp;
+    Eigen::VectorXd sigma_results(nIter + 1);
     sigma_results(0) = sigma;
     
     // initialise values, required for computation
     Eigen::SparseMatrix<double> Z_k, K_k, Q, M, Mt;
     Eigen::MatrixXd gamma_matrix;
-    Eigen::VectorXd gamma_matrix_tmp, ka_vector, ka_tmp, b;
+    Eigen::VectorXd K_rk, gamma_matrix_tmp, ka_vector, ka_tmp, b;
     Eigen::VectorXd x, mu_tmp, gamma_proposal;
     
     
@@ -139,6 +126,7 @@ Rcpp::List sarim_gibbs(const Eigen::Map<Eigen::VectorXd> & y,
             std::string solv = solver(k);
             Z_k = Z(k);
             K_k = K(k);
+            K_rk = K_rank(k);
             gamma_matrix = coef_results(k);
             ka_vector = kappa_results(k);
             
@@ -181,7 +169,6 @@ Rcpp::List sarim_gibbs(const Eigen::Map<Eigen::VectorXd> & y,
                 gamma_proposal = x + mu_tmp;
             };
             
-            gamma_matrix.conservativeResize(gamma_matrix.rows(), gamma_matrix.cols() + 1);
             gamma_matrix.col(n_mcmc) = gamma_proposal;
             coef_results[k] = gamma_matrix;
             eta = eta_tmp + Z_k * gamma_matrix.col(n_mcmc);
@@ -189,7 +176,7 @@ Rcpp::List sarim_gibbs(const Eigen::Map<Eigen::VectorXd> & y,
             // update kappa_k by sampling from  ~ Ga(kappa_alpha + rk(K_i)/2  , 
             // kappa_beta + gamma_k ' * K_k * gamma_k / 2)
             ka_tmp = ka_values(k);
-            double ka_alpha = ka_tmp.coeff(0, 0) + 0.5 * K_rk(k);
+            double ka_alpha = ka_tmp.coeff(0, 0) + 0.5 * K_rk(0);
             double ka_beta;
             ka_beta = ka_tmp.coeff(1, 0) + 
                 0.5 * (gamma_matrix.col(n_mcmc)).transpose() * K_k * gamma_matrix.col(n_mcmc);
