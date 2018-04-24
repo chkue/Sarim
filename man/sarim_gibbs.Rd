@@ -4,13 +4,11 @@
 \alias{sarim_gibbs}
 \title{Gibbs sampler for use in sarim()-function}
 \usage{
-sarim_gibbs(y, eta_first, Z, K, gamma, ka_start, ka_values, solver, sigma,
-  sigma_values, nIter, m = 50L, thr = 1e-04, display_progress = TRUE)
+sarim_gibbs(y, Z, K, K_rank, gamma, ka_start, ka_values, solver, sigma,
+  sigma_values, nIter, m, thr, display_progress = TRUE)
 }
 \arguments{
 \item{y}{Response variable, given as a vector, use as.numeric() if error occur.}
-
-\item{eta_first}{First calculation of eta = Z_1 * gamma_1 + ... + Z_p * gamma_p}
 
 \item{Z}{Design matrices of the covariates, given as list with sparse matrix, 
 use e.g. as(matrix, "dgCMatrix") from library(Matrix). Use for example the
@@ -19,12 +17,15 @@ useful sx()-function for smoothing.}
 \item{K}{Structure/penalty matrices for the coefficients, given as list, 
 also with sparse matrix. Can be choosen in sx()-function.}
 
+\item{K_rank}{List of ranks of the structure/penalty matrix.}
+
 \item{gamma}{List of coefficient, given as vector. Row-length need to be the 
 same as the columns of Z. Per starting default from uniform distribution 
 is sampled, but a specific starting value can be given, using the sx()-function
 in the formular, e.g. y ~ sx(x1, gamma = c(rep(1, 5))).}
 
-\item{solver}{List of the solvers ("rue" or "lanczos") for sampling from a gaussian distribution, i.e. gamma ~ N(eta, Q)
+\item{solver}{List of the solvers ("rue" or "lanczos") for sampling from a 
+gaussian distribution, i.e. gamma ~ N(eta, Q)
 with Q as precision matrix. Can be choosen in sx()-function.}
 
 \item{sigma}{Start value for sigma given as numeric value, variance of response y.}

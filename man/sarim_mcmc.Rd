@@ -5,8 +5,7 @@
 \title{MCMC sampler with Metropolis-Hasting step in Gibbs-sampler for use in sarim()-function}
 \usage{
 sarim_mcmc(y, eta_first, Z, K, gamma, ka_start, ka_values, solver, family, link,
-  nIter, Ntrials = 1, m = 50L, thr = 1e-04, display_progress = TRUE,
-  constraint = "No")
+  nIter, Ntrials, m, thr, display_progress = TRUE, constraint = "No")
 }
 \arguments{
 \item{y}{Response variable, given as a vector, use as.numeric() if error occur.}

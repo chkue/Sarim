@@ -6,7 +6,7 @@
 \usage{
 sarim(formula, data = list(), intercept = "TRUE", nIter = 1000L,
   burnin = 100L, family = "gaussian", link = "identity", sigma = 1L,
-  sigma_a = 10, sigma_b = 0.1, m = 50L, thr = 1e-06)
+  sigma_a = 10, sigma_b = 0.1, Ntrials = 1L, m = 50L, thr = 1e-06)
 }
 \arguments{
 \item{formula}{usual formula, y ~ x1 + sx(x2), be aware an intercept can only be
@@ -35,6 +35,8 @@ i.e. it is assumed that sigma is Inverse Gamma distributed with parameters sigma
 \item{m}{number of maximal Lanczos-iteration.}
 
 \item{thr}{threshold, when the Lanczos-algorithm should break.}
+
+\item{Ntrial}{Number of trails, especially for binomial distribution.}
 }
 \description{
 Function used in definition of smooth terms within sarim model formulae.

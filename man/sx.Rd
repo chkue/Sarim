@@ -4,19 +4,19 @@
 \alias{sx}
 \title{Defining smooth in sarim formulae}
 \usage{
-sx(x = x, knots = 5, degree = 3, penalty = "rw2", solver = "rue",
-  ka_start = 1, ka_a = 1e-04, ka_b = 1e-04, gamma = NULL, Z = NULL,
-  K = NULL)
+sx(x = x, knots = 5, penalty = "rw2", degree = 3, solver = "rue",
+  ka_start = 1, ka_a = 1, ka_b = 1e-04, gamma = NULL, Z = NULL,
+  K = NULL, ...)
 }
 \arguments{
 \item{x}{covariates to be smooth, similar to bs form spline package.}
 
 \item{knots}{number of knots, only equidistant is acutual available.}
 
-\item{degree}{the order of the Basis functions, default = 3 (cubic splines).}
-
 \item{penalty}{"identity", "rw1", "rw2" for structure/penalty matrix 
 or "gmrf" if your own design matrix Z is given.}
+
+\item{degree}{the order of the Basis functions, default = 3 (cubic splines).}
 
 \item{solver}{"rue" or "lanczos" for sampling from a normal distribution. "rue" is
 default and a good choose for normal smoothing. "lanczos" is an iterative methods
