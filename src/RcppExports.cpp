@@ -33,15 +33,15 @@ BEGIN_RCPP
 END_RCPP
 }
 // sarim_gibbs
-Rcpp::List sarim_gibbs(const Eigen::Map<Eigen::VectorXd>& y, const Eigen::Map<Eigen::VectorXd>& eta_first, const Rcpp::List& Z, const Rcpp::List& K, const Rcpp::List& gamma, const Rcpp::List& ka_start, const Rcpp::List& ka_values, const Rcpp::List& solver, const double& sigma, const Eigen::Map<Eigen::VectorXd>& sigma_values, const int& nIter, const int& m, const double& thr, const bool& display_progress);
-RcppExport SEXP _Sarim_sarim_gibbs(SEXP ySEXP, SEXP eta_firstSEXP, SEXP ZSEXP, SEXP KSEXP, SEXP gammaSEXP, SEXP ka_startSEXP, SEXP ka_valuesSEXP, SEXP solverSEXP, SEXP sigmaSEXP, SEXP sigma_valuesSEXP, SEXP nIterSEXP, SEXP mSEXP, SEXP thrSEXP, SEXP display_progressSEXP) {
+Rcpp::List sarim_gibbs(const Eigen::Map<Eigen::VectorXd>& y, const Rcpp::List& Z, const Rcpp::List& K, const Rcpp::List& K_rank, const Rcpp::List& gamma, const Rcpp::List& ka_start, const Rcpp::List& ka_values, const Rcpp::List& solver, const double& sigma, const Eigen::Map<Eigen::VectorXd>& sigma_values, const int& nIter, const int& m, const double& thr, const bool& display_progress);
+RcppExport SEXP _Sarim_sarim_gibbs(SEXP ySEXP, SEXP ZSEXP, SEXP KSEXP, SEXP K_rankSEXP, SEXP gammaSEXP, SEXP ka_startSEXP, SEXP ka_valuesSEXP, SEXP solverSEXP, SEXP sigmaSEXP, SEXP sigma_valuesSEXP, SEXP nIterSEXP, SEXP mSEXP, SEXP thrSEXP, SEXP display_progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const Eigen::Map<Eigen::VectorXd>& >::type y(ySEXP);
-    Rcpp::traits::input_parameter< const Eigen::Map<Eigen::VectorXd>& >::type eta_first(eta_firstSEXP);
     Rcpp::traits::input_parameter< const Rcpp::List& >::type Z(ZSEXP);
     Rcpp::traits::input_parameter< const Rcpp::List& >::type K(KSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type K_rank(K_rankSEXP);
     Rcpp::traits::input_parameter< const Rcpp::List& >::type gamma(gammaSEXP);
     Rcpp::traits::input_parameter< const Rcpp::List& >::type ka_start(ka_startSEXP);
     Rcpp::traits::input_parameter< const Rcpp::List& >::type ka_values(ka_valuesSEXP);
@@ -52,7 +52,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const int& >::type m(mSEXP);
     Rcpp::traits::input_parameter< const double& >::type thr(thrSEXP);
     Rcpp::traits::input_parameter< const bool& >::type display_progress(display_progressSEXP);
-    rcpp_result_gen = Rcpp::wrap(sarim_gibbs(y, eta_first, Z, K, gamma, ka_start, ka_values, solver, sigma, sigma_values, nIter, m, thr, display_progress));
+    rcpp_result_gen = Rcpp::wrap(sarim_gibbs(y, Z, K, K_rank, gamma, ka_start, ka_values, solver, sigma, sigma_values, nIter, m, thr, display_progress));
     return rcpp_result_gen;
 END_RCPP
 }

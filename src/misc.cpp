@@ -35,7 +35,7 @@
 #include "misc.hpp"
 
 // function to calculate the rank of a matrix
-// need to sample from a kappa distribuition
+// need to sample from a kappa distribution
 unsigned int rank_calculation (const Eigen::SparseMatrix<double> & M) {
     Eigen::SparseQR<Eigen::SparseMatrix<double>, Eigen::COLAMDOrdering<int> > qr_decomp(M);
     unsigned int rank = qr_decomp.rank();

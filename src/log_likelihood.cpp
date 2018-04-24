@@ -41,8 +41,7 @@ Eigen::VectorXd loglike (const Eigen::VectorXd & y,
                          const double & Ntrials) {
     
     // Intialise output vectors
-    Eigen::VectorXd out, h_tmp;
-    int nrows = eta.rows();
+    Eigen::VectorXd out;
     
     Eigen::VectorXd h = response_function(eta, link);
     
