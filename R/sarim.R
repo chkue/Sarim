@@ -15,13 +15,14 @@
 #'              i.e. it is assumed that sigma is Inverse Gamma distributed with parameters sigma_a and sigma_b.
 #' @param sigma_a prior-value, see sigma.
 #' @param sigma_b prior-value, see sigma.
+#' @param Ntrial Number of trails, especially for binomial distribution.
 #' @param m number of maximal Lanczos-iteration.
 #' @param thr threshold, when the Lanczos-algorithm should break.
 #' 
 #' @export
 sarim <- function(formula, data = list(), intercept = "TRUE", nIter = 1000L, burnin = 100L,
                   family = "gaussian", link = "identity",
-                  sigma = 1L, sigma_a = 10, sigma_b = 0.1,
+                  sigma = 1L, sigma_a = 10, sigma_b = 0.1, Ntrials = 1L,
                   m = 50L, thr = 0.000001) {
     require(Matrix)
     mf <- stats::model.frame(formula = formula, data = data)
@@ -29,6 +30,7 @@ sarim <- function(formula, data = list(), intercept = "TRUE", nIter = 1000L, bur
     
     Z <- list()
     K <- list()
+    K_rk <- list()
     kappaList <- list()
     gammaList <- list()
     solverList <- list()
@@ -54,7 +56,9 @@ sarim <- function(formula, data = list(), intercept = "TRUE", nIter = 1000L, bur
     
     
     for (i in 2:length(mf)) {
+        # distinguish between WITH intercept and WITHOUT intercept
         if (intercept == "TRUE") {
+            # assume that first column is intercept
             kappa_startList[[1]] <- as.numeric(1)
             solverList[[1]] <- "rue"
             if (family == "gaussian") {
@@ -65,23 +69,25 @@ sarim <- function(formula, data = list(), intercept = "TRUE", nIter = 1000L, bur
             }
             kappaList[[1]] <- c(1, 0.0001)
             K[[1]] <- as(as.matrix(1), "dgCMatrix")
+            K_rk[[1]] <- rankMatrix(K[[1]])[1]
             Z[[1]] <- as(as.matrix(rep(1, length(y)), nrow = length(y)), "dgCMatrix")
             
+            # differ between vector and matrix as input feature
             if (!is.vector(mf[[i]])) {
                 kappa_startList[[i]] <- attr(mf[[i]], "ka_start")
                 solverList[[i]] <- attr(mf[[i]], "solver")
                 kappaList[[i]] <- c(attr(mf[[i]], "ka_a"), attr(mf[[i]], "ka_b"))
                 
-                
+                # distinguish between given Z
                 if (is.null(attr(mf[[i]], "Z"))) {
                     if (is.null(attr(mf[[i]], "gamma"))) {
                         gammaList[[i]] <- c(stats::rnorm(ncol(mf[[i]]), sd = 0.1))
                     } else {
                         gammaList[[i]] <- c(attr(mf[[i]], "gamma"))
                     }
-                    K[[i]] <- as(K_matrix(dimension = dim(mf[[i]])[2],
-                                          penalty = attr(mf[[i]], "penalty"),
+                    K[[i]] <- as(K_matrix(dimension = dim(mf[[i]])[2], penalty = attr(mf[[i]], "penalty"),
                                           data = attr(mf[[i]], "K")), "dgCMatrix")
+                    K_rk[[i]] <- rankMatrix(K[[i]], method = "qr")[1]
                     attributes(mf[[i]]) <- attributes(mf[[i]])["dim"]
                     Z[[i]] <- as(as.matrix(mf[[i]]), "dgCMatrix")
                 }
@@ -93,9 +99,10 @@ sarim <- function(formula, data = list(), intercept = "TRUE", nIter = 1000L, bur
                         gammaList[[i]] <- c(attr(mf[[i]], "gamma"))
                     }
                     K[[i]] <- as(attr(mf[[i]], "K"), "dgCMatrix")
+                    K_rk[[i]] <- rankMatrix(K[[i]], method = "qr")[1]
                     Z[[i]] <- as(attr(mf[[i]], "Z"), "dgCMatrix")
                 }
-                etaList[[i]] <- Z[[i]] %*% gammaList[[i]]
+                
             }
             if (is.vector(mf[[i]])) {
                 kappa_startList[[i]] <- attr(mf[[i]], "ka_start")
@@ -103,8 +110,8 @@ sarim <- function(formula, data = list(), intercept = "TRUE", nIter = 1000L, bur
                 gammaList[[i]] <- c(stats::rnorm(1, sd = 0.1))
                 kappaList[[i]] <- c(1, 0.0001)
                 K[[i]] <- as(as.matrix(1), "dgCMatrix")
+                K_rk[[i]] <- rankMatrix(K[[i]], method = "qr")[1]
                 Z[[i]] <- as(as.matrix(mf[[i]]), "dgCMatrix")
-                etaList[[i]] <- Z[[i]] %*% gammaList[[i]]
             }
         } else {
             if (!is.vector(mf[[i]])) {
@@ -120,9 +127,9 @@ sarim <- function(formula, data = list(), intercept = "TRUE", nIter = 1000L, bur
                     } else {
                         gammaList[[i - 1]] <- c(attr(mf[[i]], "gamma"))
                     }
-                    K[[i - 1]] <- as(K_matrix(dimension = dim(mf[[i]])[2],
-                                              penalty = attr(mf[[i]], "penalty"),
+                    K[[i - 1]] <- as(K_matrix(dimension = dim(mf[[i]])[2], penalty = attr(mf[[i]], "penalty"),
                                               data = attr(mf[[i]], "K")), "dgCMatrix")
+                    K_rk[[i - 1]] <- rankMatrix(K[[i - 1]], method = "qr")[1]
                     
                     attributes(mf[[i]]) <- attributes(mf[[i]])["dim"]
                     Z[[i - 1]] <- as(as.matrix(mf[[i]]), "dgCMatrix")
@@ -135,9 +142,9 @@ sarim <- function(formula, data = list(), intercept = "TRUE", nIter = 1000L, bur
                         gammaList[[i - 1]] <- c(attr(mf[[i]], "gamma"))
                     }
                     K[[i - 1]] <- as(attr(mf[[i]], "K"), "dgCMatrix")
+                    K_rk[[i - 1]] <- rankMatrix(K[[i - 1]], method = "qr")[1]
                     Z[[i - 1]] <- as(attr(mf[[i]], "Z"), "dgCMatrix")
                 }
-                etaList[[i - 1]] <- Z[[i - 1]] %*% gammaList[[i - 1]]
                 
             }
             if (is.vector(mf[[i]])) {
@@ -146,26 +153,20 @@ sarim <- function(formula, data = list(), intercept = "TRUE", nIter = 1000L, bur
                 gammaList[[i - 1]] <- c(stats::rnorm(1, sd = 0.1))
                 kappaList[[i - 1]] <- c(1, 0.0001)
                 K[[i - 1]] <- as(as.matrix(1), "dgCMatrix")
+                K_rk[[i - 1]] <- rankMatrix(K[[i - 1]], method = "qr")
                 Z[[i - 1]] <- as(as.matrix(mf[[i]]), "dgCMatrix")
-                etaList[[i - 1]] <- Z[[i - 1]] %*% gammaList[[i - 1]]
             }
         }
         
         
-    }
+    } 
     
     sigmavalues <- c(sigma_a, sigma_b)
     sigma <- as.numeric(sigma)
     
-    # calculate eta the first time
-    eta_first <- rep(0, length(y))
-    for (i in 1:length(Z)) eta_first = eta_first + etaList[[i]]
-    eta_first <- as.numeric(eta_first)
-    
-    
     # Using Gibbs or Gibbs-with-MH depending on family
     if (family == "gaussian") {
-        out <- Sarim::sarim_gibbs(y, eta_first, Z = Z, K = K, gamma = gammaList,
+        out <- Sarim::sarim_gibbs(y = y, Z = Z, K = K, K_rank = K_rk, gamma = gammaList,
                                   ka_start = kappa_startList, ka_values = kappaList,
                                   solver = solverList,
                                   sigma = sigma, sigma_values = sigmavalues,
@@ -176,10 +177,10 @@ sarim <- function(formula, data = list(), intercept = "TRUE", nIter = 1000L, bur
                          "sigma_results" = out$sigma_results)
     }
     if (family != "gaussian") {
-        out <- Sarim::sarim_mcmc(y, eta_first, Z = Z, K = K, gamma = gammaList,
+        out <- Sarim::sarim_mcmc(y, Z = Z, K = K, gamma = gammaList,
                                  ka_start = kappa_startList, ka_values = kappaList,
                                  solver = solverList, family = family, link = link,
-                                 nIter = nIter,
+                                 nIter = nIter, Ntrials = Ntrials,
                                  m = m, thr = thr)
         
         list_out <- list("coef_results" = out$coef_results,
