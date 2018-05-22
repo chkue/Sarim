@@ -1,3 +1,32 @@
+////////////////////////////////////////////////////////////////////////////////
+//                  _
+//     ________ ___(_) ___
+//    / __/ _  | __| |/   \
+//    \__ \(_) | | | | Y Y |
+//    /___/\_|_|_| |_|_|_|_|
+//
+//
+// sarim is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+// sarim is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU General Public License for more details.
+// You should have received a copy of the GNU General Public License
+// along with sarim. If not, see <http://www.gnu.org/licenses/>.
+//
+// This file contains:
+// -------------------
+//
+//   sarim-gibbs sampler for gaussian response
+//
+// Written by:
+//   Christopher Küster
+//
+////////////////////////////////////////////////////////////////////////////////
+
 // [[Rcpp::depends(RcppEigen)]]
 // [[Rcpp::depends(RcppProgress)]]
 #include <progress.hpp>
@@ -25,22 +54,25 @@
 //'          same as the columns of Z. Per starting default from uniform distribution 
 //'          is sampled, but a specific starting value can be given, using the sx()-function
 //'          in the formular, e.g. y ~ sx(x1, gamma = c(rep(1, 5))).
-//' @param kappa Start value for kappa, given as a list and double/float value.
-//' @param kappa_values Coefficients for kappa, given as list within as vector c(kappa_a, kappa_b).
+//' @param ka_start Start value for kappa, given as a list and double/float value.
+//' @param ka_values Coefficients for kappa, given as list within as vector c(kappa_a, kappa_b).
 //' @param solver List of the solvers ("rue" or "lanczos") for sampling from a 
 //'          gaussian distribution, i.e. gamma ~ N(eta, Q)
 //'          with Q as precision matrix. Can be choosen in sx()-function.
+//' @param lin_constraint Specify if a linear constraint for the coefficient is needed. 
+//'          Given as list with "TRUE" or "FALSE" values. Can be choosen in sx()-function.
 //' @param sigma Start value for sigma given as numeric value, variance of response y. 
 //' @param sigma_values Values for sigma ~ IG(sigma_a, sigma_b) given as a vector c(sigma_a, sigma_b), 
 //'          similar to kappa_values. Can be also choosen in sx()-function.
 //' @param nIter Number of iterations for MCMC-algorithm
 //' @param m Number of maximal Lanczos-iterations
-//' @param thr threshold when the Lanczos-algorithm should stop
+//' @param thr threshold when the Lanczos-algorithm or conjugate gradient-algorithm should stop
 //' 
 //' @return Return a list of values:
 //' "coef_results" = result of the estimated coefficient, output given as matrix; 
 //' "kappa_result" = result of the estimated kappa (precision) parameters, output given as vector;
-//' "sigma_results" = result of the sigma value, output given as vector
+//' "sigma_results" = result of the sigma value, output given as vector;
+//' "lanzcos_iterations" = number of the lanczos-iteration in each step.
 //' 
 //' @export
 // [[Rcpp::export]]
@@ -52,6 +84,7 @@ Rcpp::List sarim_gibbs(const Eigen::Map<Eigen::VectorXd> & y,
                        const Rcpp::List & ka_start,
                        const Rcpp::List & ka_values,
                        const Rcpp::List & solver,
+                       const Rcpp::List & lin_constraint,
                        const double & sigma,
                        const Eigen::Map<Eigen::VectorXd> & sigma_values,
                        const int & nIter,
@@ -62,78 +95,114 @@ Rcpp::List sarim_gibbs(const Eigen::Map<Eigen::VectorXd> & y,
     
     // display progress bar
     Progress pro(nIter, display_progress);
+    
     // number of covariates (p), get from R:List Z
     int p = Z.size();
+    
     // number of observations
     int n = y.rows();
     
-    // generate list for coefficients 
-    Rcpp::List coef_results(p);
-    // and corresponding matrices for coefficient-result-output
+    
+    ////////////////////////////////////////////////////////////////////////////
+    // generate list for further calculations and better output for R
+    Rcpp::List coef_results(p);         // list for coefficients
+    Rcpp::List mu_results(p);           // list for temporary mu for faster iterations steps
+    Rcpp::List v_history(p);            // list for temporary v for faster iterations steps
+    Rcpp::List iterative_sampling(p);   // list for iterative samples in lanczos-algo
+    Rcpp::List kappa_results(p);        // list for kappa values
+    Rcpp::List m_iter(p);               // list for max-lanczos-iterations
+
     for (int i = 0; i < p; ++i) {
+        // gamma matrix 
         Eigen::VectorXd gamma_tmp = gamma(i);
         int k_size = gamma_tmp.size();
         Eigen::MatrixXd gamma_results = Eigen::MatrixXd::Zero(k_size, nIter + 1);
         gamma_results.col(0) = gamma_tmp;
         coef_results[i] = gamma_results;
-    };
-    
-    // generate list for kappa
-    Rcpp::List kappa_results(p);
-    // and corresponding vector for result-output
-    for (int i = 0; i < p; ++i) {
+        
+        // kappa-value vector
         double kappa_tmp = ka_start(i);
         Eigen::VectorXd kappa_results_tmp(nIter + 1);
         kappa_results_tmp(0) = kappa_tmp;
         kappa_results[i] = kappa_results_tmp;
+        
+        // mu, for eventually faster calculation of mean form gamma ~ N(mu, Q)
+        mu_results[i] = 0 * gamma_tmp;
+        
+        // history for eventually linear constraint, for faster calculation
+        v_history[i] = 0 * gamma_tmp;
+        
+        // number of iterations in lanczos-algo
+        iterative_sampling[i] = Eigen::VectorXd::Zero(nIter);
+        
+        // starting value for lanczos-algo
+        m_iter[i] = m;
     };
+    
     
     // calculate eta the first time, eta = Z_1 * gamma_1 + ... + Z_p * gamma_p
     Eigen::VectorXd eta = Eigen::VectorXd::Zero(n);
     // eta_tmp for calculating eta_{-k}
     Eigen::VectorXd eta_tmp = eta;
-    
-    
     for (int i = 0; i < p; ++i) {
         Eigen::SparseMatrix<double> Z_tmp = Z(i);
         Eigen::VectorXd gamma_tmp = gamma(i);
-        eta = eta + Z_tmp * gamma_tmp;
+        eta += Z_tmp * gamma_tmp;
     };
     
-    // initialise results vector for sigma and set first value to starting value
+    
+    // initialise result vector for sigma and set first value to starting value
     Eigen::VectorXd sigma_results(nIter + 1);
     sigma_results(0) = sigma;
     
     // initialise values, required for computation
     Eigen::SparseMatrix<double> Z_k, K_k, Q, M, Mt;
     Eigen::MatrixXd gamma_matrix;
-    Eigen::VectorXd K_rk, gamma_matrix_tmp, ka_vector, ka_tmp, b;
-    Eigen::VectorXd x, mu_tmp, gamma_proposal;
+    Eigen::VectorXd K_rk,   // Rank for penalty matrix
+        ka_vector, 
+        ka_tmp, 
+        b,                  // response vector, i.e. Z' * W (y_tilde - eta_{-k})    
+        v_hist,             // history of v, needed linear constraint and for eventually faster solving
+        it_sampling,        // vector for numbers of lanczos-iterations
+        x,                  // proposal for sampling from N(0, Q^{-1})
+        mu,                 // current mean for gamma ~ N(mu, Q)
+        mu_tmp,             // proposal mean
+        gamma_proposal;     // proposal for gamma, could be or not rejected
     
     
+    ////////////////////////////////////////////////////////////////////////////
+    // ITERATION
     // loop for number of iterations "nIter" 
-    // C++ begin in 0 !!! important for loops
+    // C++ begin in 0 !!!   important for loops
     for (int n_mcmc = 1; n_mcmc <= nIter; ++n_mcmc) {
-        //if (Progress::check_abort() )
-        //    return -1.0;
+        // if (Progress::check_abort() )
+        //     return -1.0;
         pro.increment();
         
+        // Update regression coefficients, one at a time
         // loop for covariates p 
         for (int k = 0; k < p; ++k) {
             
             // initialise required matrices Z and K and coefficient gamma and kappa
             // set ._tmp for required calculations
-            std::string solv = solver(k);
-            Z_k = Z(k);
-            K_k = K(k);
-            K_rk = K_rank(k);
-            gamma_matrix = coef_results(k);
-            ka_vector = kappa_results(k);
+            Z_k = Z(k);                     // design matrix
+            K_k = K(k);                     // penalty/structure matrix
+            K_rk = K_rank(k);               // rank of penalty/structure matrix
+            gamma_matrix = coef_results(k); // coefficient matrix
+            ka_vector = kappa_results(k);   // vector for precision parameter
+            std::string solv = solver(k);   // which solver should be used
+            std::string lin_con = lin_constraint(k); // linear constraint necessary?
+            mu = mu_results(k);             // previous value for expectation
+            v_hist = v_history(k);          // history of v, linear constraint
+            it_sampling = iterative_sampling(k);    // number of iterations in lanczos
+            int max_iter_of_lanczos = m_iter(k);    // max-lanczos-iterations
+            ////////////////////////////////////////////////////////////////////
+            
             
             // calculate eta_{-k} = eta - Z_k * gamma
             eta_tmp = eta - Z_k * gamma_matrix.col(n_mcmc - 1);
             
-            // calculate Q (precision) matrix ; 
+            // calculate Q (precision) matrix; 
             Q = (1/sigma_results(n_mcmc - 1)) * Z_k.transpose() * Z_k + 
                 ka_vector(n_mcmc - 1) * K_k;
             
@@ -142,39 +211,72 @@ Rcpp::List sarim_gibbs(const Eigen::Map<Eigen::VectorXd> & y,
             
             // sample from gaussian distribution
             // depending on solver 'rue' or 'lanczos'
-            if (solv == "rue") {
-                RueSolv rue_solver = algorithm(Q, b);
-                x = rue_solver.x;
-                mu_tmp = rue_solver.mu;
-                
-                gamma_proposal = x + mu_tmp;
+            if (solv == "rue") { 
+                // simple Rue-block-algorithm; see file "rue.cpp"/"rue.hpp"
+                // include linear-constraint if needed
+                RueSolv rue_solver = algorithm(Q, b, lin_con);
+                gamma_proposal = rue_solver.ga;
                 
             } else {
+                // Lanczos approximation of x ~ N(0, Q^{-1})
+                // first calculate incomplete cholesky; see file "misc.cpp"/"misc.hpp"
                 M = ichol(Q);
                 Mt = M.transpose();
-                Lanczos lanczos = algorithm(Q, m, M, Mt, thr);
                 
-                if (lanczos.Iteration >= m) {
+                // Lanczos algorithm; see file "lanczos.cpp"/"lanczos.hpp"
+                Lanczos lanczos_solver = algorithm(Q, max_iter_of_lanczos, M, Mt, thr);
+                
+                // save number of lanczos-iteration
+                it_sampling(n_mcmc - 1) = lanczos_solver.Iteration;
+                iterative_sampling[k] = it_sampling;
+                m_iter[k] = it_sampling(n_mcmc - 1) + 10;
+                if (lanczos_solver.Iteration >= m) {
                     Rcpp::Rcout << "Number of lanczos-iteration <= " << m <<" in iteration " 
                                 << n_mcmc << ". Set m higher (>" << m << ")" << std::endl;
                 }
                 
-                x = lanczos.x;
+                // sample from N(0, Q^{-1})
+                x = lanczos_solver.x;
                 
+                // solve linear system Q*mu = b
                 Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, 
                                          Eigen::Lower|Eigen::Upper, 
                                          Eigen::IncompleteCholesky<double> > iccg(Q);
+                iccg.setTolerance(thr);     // set tolerance threshold for convergence
+                iccg.solveWithGuess(b, mu); // guess initial solution for eventually faster solving
                 mu_tmp = iccg.solve(b);
                 
+                // proposal for gamma ~ N(mu, Q^{-1}), i.e. gamma = x + mu
                 gamma_proposal = x + mu_tmp;
+                
+                // apply linear constraint if needed
+                if (lin_con == "TRUE") {
+                    // get number of parameters
+                    unsigned int n = gamma_proposal.rows();
+                    Eigen::VectorXd At = Eigen::VectorXd::Ones(n);
+                    Eigen::VectorXd e = Eigen::VectorXd::Zero(1);
+                    Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, 
+                                             Eigen::Lower|Eigen::Upper, 
+                                             Eigen::IncompleteCholesky<double> > iccgOfA(Q);
+                    iccgOfA.setTolerance(thr);          // set tolerance threshold for convergence
+                    iccgOfA.solveWithGuess(b, v_hist);  // guess initial solution for eventually faster solving
+                    Eigen::VectorXd v = iccgOfA.solve(At);
+                    
+                    v_history[k] = v;
+                    
+                    gamma_proposal = gamma_proposal - v * ( (At.transpose() * v).cwiseInverse() ) * (At.transpose() * gamma_proposal - e);
+                    mu_tmp = mu_tmp - v * ( (At.transpose() * v).cwiseInverse() ) * (At.transpose() * mu_tmp - e);
+                }
+                // save mu_tmp for next step
+                mu_results[k] = mu_tmp;
             };
             
             gamma_matrix.col(n_mcmc) = gamma_proposal;
+            eta = eta_tmp + Z_k * gamma_proposal;
             coef_results[k] = gamma_matrix;
-            eta = eta_tmp + Z_k * gamma_matrix.col(n_mcmc);
             
-            // update kappa_k by sampling from  ~ Ga(kappa_alpha + rk(K_i)/2  , 
-            // kappa_beta + gamma_k ' * K_k * gamma_k / 2)
+            // update kappa_k by sampling from  
+            // ~ Ga(kappa_alpha + rk(K_i)/2 , kappa_beta + gamma_k ' * K_k * gamma_k / 2)
             ka_tmp = ka_values(k);
             double ka_alpha = ka_tmp.coeff(0, 0) + 0.5 * K_rk(0);
             double ka_beta;
@@ -195,5 +297,6 @@ Rcpp::List sarim_gibbs(const Eigen::Map<Eigen::VectorXd> & y,
     // return lists for gamma, kappa and sigma and rank(K) for control
     return Rcpp::List::create(Rcpp::Named("coef_results") = coef_results, 
                               Rcpp::Named("kappa_results") = kappa_results,
-                              Rcpp::Named("sigma_results") = sigma_results);
+                              Rcpp::Named("sigma_results") = sigma_results,
+                              Rcpp::Named("lanzcos_iterations") = iterative_sampling);
 }

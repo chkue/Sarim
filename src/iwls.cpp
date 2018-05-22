@@ -23,45 +23,28 @@
 //   Definition for iterative weighted least square functions
 //
 // Written by:
-//  Christopher Küster
+//   Christopher Küster
 //
 ////////////////////////////////////////////////////////////////////////////////
 
 // [[Rcpp::depends(RcppEigen)]]
 #include <RcppEigen.h>
 #include "iwls.hpp"
-
-
-// calculation of response function
-Eigen::VectorXd response_function (const Eigen::VectorXd & eta, 
-                                   const std::string & link) {
-    Eigen::VectorXd out;
-    
-    // log-function for poisson model
-    if (link == "log") {
-        out = eta.array().exp();
-    }
-    
-    // logit-function for binomial model
-    if (link == "logit") {
-        out = 1 / (1 + (-eta).array().exp() );
-    }
-    
-    return out;
-};
-
+#include "response_function.hpp"
 
 
 // structure to calculate the working dependent variable and weight matrix
 IWLS compute (const Eigen::VectorXd & y, 
               const Eigen::VectorXd & eta, 
-              const double & Ntrials, 
               const std::string & fam, 
-              const std::string & link) {
+              const std::string & link,
+              const double & Ntrials) {
+    // make structure for multiple output
     IWLS iwls;
     
-    int n = y.rows();
-    Eigen::VectorXd y_t, W_tmp, h, tmp2;;
+    int n = y.rows(); // number of observations
+    // initialisation 
+    Eigen::VectorXd y_t, W_tmp, h; 
     Eigen::SparseMatrix<double> W_t(n, n);
     
     
@@ -71,6 +54,7 @@ IWLS compute (const Eigen::VectorXd & y,
             h = response_function(eta, link);
             y_t = eta + (y - h).cwiseQuotient(h);
             
+            // insert weights in diagonal matrix
             for (int i = 0; i < n; ++i) {
                 W_t.insert(i, i) = h(i);
             }
@@ -86,7 +70,7 @@ IWLS compute (const Eigen::VectorXd & y,
             // calcualte response function 
             // and attempt simple trick to preserve from numerical problems
             h = response_function(eta, link);
-            tmp2 = response_function(-eta, link);
+            Eigen::VectorXd tmp2 = response_function(-eta, link);
             for (int i = 0; i < n; ++i) {
                 if (h(i) == 1)  h(i) = 1 - 1e-7;
                 if (h(i) == 0)  h(i) = 1e-7;

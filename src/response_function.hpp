@@ -20,28 +20,20 @@
 // This file contains:
 // -------------------
 //
-//   Declaration for iterative weighted least square functions
+//   Response function for logit or log-function
 //
 // Written by:
 //   Christopher Küster
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef IWLS_H_
-#define IWLS_H_
+#ifndef RESPONSEFUNC_H_
+#define RESPONSEFUNC_H_
 
 #include <RcppEigen.h>
 
-struct IWLS {
-    Eigen::SparseMatrix<double> W;
-    Eigen::VectorXd y_tilde;
-};
+Eigen::VectorXd response_function (const Eigen::VectorXd & eta, 
+                                   const std::string & link);
 
-
-IWLS compute (const Eigen::VectorXd & y, 
-              const Eigen::VectorXd & eta, 
-              const std::string & fam, 
-              const std::string & link,
-              const double & Ntrials);
 
 #endif // IWLS_H_

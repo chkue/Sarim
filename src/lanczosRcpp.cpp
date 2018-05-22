@@ -45,8 +45,8 @@ Rcpp::List lanczosCpp(const Eigen::MappedSparseMatrix<double> & Q,
     Eigen::VectorXd b = a;
     
     
-    Eigen::SimplicialLLT<Eigen::SparseMatrix<double> > simplylltF1(F1); 
-    Eigen::SimplicialLLT<Eigen::SparseMatrix<double> > simplylltF2(F2); 
+    Eigen::SparseLU<Eigen::SparseMatrix<double> > LUF1(F1); 
+    Eigen::SparseLU<Eigen::SparseMatrix<double> > LUF2(F2); 
     
     
     
@@ -54,9 +54,9 @@ Rcpp::List lanczosCpp(const Eigen::MappedSparseMatrix<double> & Q,
         iter = j + 1;
         x_old = x;
         
-        a = simplylltF2.solve(V.col(j));
+        a = LUF2.solve(V.col(j));
         b = Q * a;
-        w = simplylltF1.solve(b);
+        w = LUF1.solve(b);
         
         if(j > 0) {
             w = w - beta(j) * V.col(j - 1);
@@ -74,7 +74,7 @@ Rcpp::List lanczosCpp(const Eigen::MappedSparseMatrix<double> & Q,
             T = tri_mat_creation (j + 1, alpha, beta);
             Eigen::VectorXd e1 = Eigen::VectorXd::Zero(j + 1);
             e1(0) = 1;
-            x = z.norm() * V.leftCols(j) * T.sqrt().colPivHouseholderQr().solve(e1); 
+            x = z.norm() * V.leftCols(j) * T.sqrt().lu().solve(e1); 
             err(j) = (x - x_old).norm() / x.norm();
             if (err(j) < thr) {
                 break;
@@ -82,7 +82,7 @@ Rcpp::List lanczosCpp(const Eigen::MappedSparseMatrix<double> & Q,
         }
         
     }
-    x = simplylltF2.solve(x);
+    x = LUF2.solve(x);
 
     return Rcpp::List::create(Rcpp::Named("x") = x,
                               Rcpp::Named("error") = err,

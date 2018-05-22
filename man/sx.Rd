@@ -5,8 +5,8 @@
 \title{Defining smooth in sarim formulae}
 \usage{
 sx(x = x, knots = 5, penalty = "rw2", degree = 3, solver = "rue",
-  ka_start = 1, ka_a = 1, ka_b = 1e-04, gamma = NULL, Z = NULL,
-  K = NULL, ...)
+  ka_start = 1, ka_a = 1, ka_b = 1e-04, linear_constraint = "FALSE",
+  gamma = NULL, Z = NULL, K = NULL)
 }
 \arguments{
 \item{x}{covariates to be smooth, similar to bs form spline package.}
@@ -27,6 +27,8 @@ especially suitable for BIG STRUCTURE MATRICES, i.e. dim(Z) > 5000.}
 \item{ka_a}{a value for sampling form priori kappa~Ga(ka_a, ka_b), see kappa.}
 
 \item{ka_b}{a value for sampling form priori kappa~Ga(ka_a, ka_b), see kappa.}
+
+\item{linear_constraint}{apply a linear constraint if it needed.}
 
 \item{gamma}{optional starting values for coefficent of gamma, the length(gamma)
 should be the same as the columns of x, i.e. the number knots, which are  

@@ -23,7 +23,7 @@
 //   Declaration for iterative sampling from a gaussian distribution by Lanczos
 //
 // Written by:
-//  Christopher Küster
+//   Christopher Küster
 //
 ////////////////////////////////////////////////////////////////////////////////
 

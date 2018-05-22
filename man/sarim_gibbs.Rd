@@ -4,8 +4,8 @@
 \alias{sarim_gibbs}
 \title{Gibbs sampler for use in sarim()-function}
 \usage{
-sarim_gibbs(y, Z, K, K_rank, gamma, ka_start, ka_values, solver, sigma,
-  sigma_values, nIter, m, thr, display_progress = TRUE)
+sarim_gibbs(y, Z, K, K_rank, gamma, ka_start, ka_values, solver, lin_constraint,
+  sigma, sigma_values, nIter, m, thr, display_progress = TRUE)
 }
 \arguments{
 \item{y}{Response variable, given as a vector, use as.numeric() if error occur.}
@@ -24,9 +24,16 @@ same as the columns of Z. Per starting default from uniform distribution
 is sampled, but a specific starting value can be given, using the sx()-function
 in the formular, e.g. y ~ sx(x1, gamma = c(rep(1, 5))).}
 
+\item{ka_start}{Start value for kappa, given as a list and double/float value.}
+
+\item{ka_values}{Coefficients for kappa, given as list within as vector c(kappa_a, kappa_b).}
+
 \item{solver}{List of the solvers ("rue" or "lanczos") for sampling from a 
 gaussian distribution, i.e. gamma ~ N(eta, Q)
 with Q as precision matrix. Can be choosen in sx()-function.}
+
+\item{lin_constraint}{Specify if a linear constraint for the coefficient is needed. 
+Given as list with "TRUE" or "FALSE" values. Can be choosen in sx()-function.}
 
 \item{sigma}{Start value for sigma given as numeric value, variance of response y.}
 
@@ -37,17 +44,14 @@ similar to kappa_values. Can be also choosen in sx()-function.}
 
 \item{m}{Number of maximal Lanczos-iterations}
 
-\item{thr}{threshold when the Lanczos-algorithm should stop}
-
-\item{kappa}{Start value for kappa, given as a list and double/float value.}
-
-\item{kappa_values}{Coefficients for kappa, given as list within as vector c(kappa_a, kappa_b).}
+\item{thr}{threshold when the Lanczos-algorithm or conjugate gradient-algorithm should stop}
 }
 \value{
 Return a list of values:
 "coef_results" = result of the estimated coefficient, output given as matrix; 
 "kappa_result" = result of the estimated kappa (precision) parameters, output given as vector;
-"sigma_results" = result of the sigma value, output given as vector
+"sigma_results" = result of the sigma value, output given as vector;
+"lanzcos_iterations" = number of the lanczos-iteration in each step.
 }
 \description{
 This generates samples for the coefficients using a gibbs sampler, 

@@ -26,26 +26,29 @@ lanczosCpp <- function(Q, m, F1, F2, thr) {
 #'          same as the columns of Z. Per starting default from uniform distribution 
 #'          is sampled, but a specific starting value can be given, using the sx()-function
 #'          in the formular, e.g. y ~ sx(x1, gamma = c(rep(1, 5))).
-#' @param kappa Start value for kappa, given as a list and double/float value.
-#' @param kappa_values Coefficients for kappa, given as list within as vector c(kappa_a, kappa_b).
+#' @param ka_start Start value for kappa, given as a list and double/float value.
+#' @param ka_values Coefficients for kappa, given as list within as vector c(kappa_a, kappa_b).
 #' @param solver List of the solvers ("rue" or "lanczos") for sampling from a 
 #'          gaussian distribution, i.e. gamma ~ N(eta, Q)
 #'          with Q as precision matrix. Can be choosen in sx()-function.
+#' @param lin_constraint Specify if a linear constraint for the coefficient is needed. 
+#'          Given as list with "TRUE" or "FALSE" values. Can be choosen in sx()-function.
 #' @param sigma Start value for sigma given as numeric value, variance of response y. 
 #' @param sigma_values Values for sigma ~ IG(sigma_a, sigma_b) given as a vector c(sigma_a, sigma_b), 
 #'          similar to kappa_values. Can be also choosen in sx()-function.
 #' @param nIter Number of iterations for MCMC-algorithm
 #' @param m Number of maximal Lanczos-iterations
-#' @param thr threshold when the Lanczos-algorithm should stop
+#' @param thr threshold when the Lanczos-algorithm or conjugate gradient-algorithm should stop
 #' 
 #' @return Return a list of values:
 #' "coef_results" = result of the estimated coefficient, output given as matrix; 
 #' "kappa_result" = result of the estimated kappa (precision) parameters, output given as vector;
-#' "sigma_results" = result of the sigma value, output given as vector
+#' "sigma_results" = result of the sigma value, output given as vector;
+#' "lanzcos_iterations" = number of the lanczos-iteration in each step.
 #' 
 #' @export
-sarim_gibbs <- function(y, Z, K, K_rank, gamma, ka_start, ka_values, solver, sigma, sigma_values, nIter, m, thr, display_progress = TRUE) {
-    .Call('_Sarim_sarim_gibbs', PACKAGE = 'Sarim', y, Z, K, K_rank, gamma, ka_start, ka_values, solver, sigma, sigma_values, nIter, m, thr, display_progress)
+sarim_gibbs <- function(y, Z, K, K_rank, gamma, ka_start, ka_values, solver, lin_constraint, sigma, sigma_values, nIter, m, thr, display_progress = TRUE) {
+    .Call('_Sarim_sarim_gibbs', PACKAGE = 'Sarim', y, Z, K, K_rank, gamma, ka_start, ka_values, solver, lin_constraint, sigma, sigma_values, nIter, m, thr, display_progress)
 }
 
 #' MCMC sampler with Metropolis-Hasting step in Gibbs-sampler for use in sarim()-function
@@ -56,35 +59,39 @@ sarim_gibbs <- function(y, Z, K, K_rank, gamma, ka_start, ka_values, solver, sig
 #' link = "logit"/"log" is choosen respectively.
 #' 
 #' @param y Response variable, given as a vector, use as.numeric() if error occur.
-#' @param eta_first First calculation of eta = Z_1 * gamma_1 + ... + Z_p * gamma_p
 #' @param Z Design matrices of the covariates, given as list with sparse matrix, 
 #'          use e.g. as(matrix, "dgCMatrix") from library(Matrix). Use for example the
 #'          useful sx()-function for smoothing.
 #' @param K Structure/penalty matrices for the coefficients, given as list, 
 #'          also with sparse matrix. Can be choosen in sx()-function.
+#' @param K_rank List of ranks of the structure/penalty matrix.
 #' @param gamma List of coefficient, given as vector. Row-length need to be the 
 #'          same as the columns of Z. Per starting default from uniform distribution 
 #'          is sampled, but a specific starting value can be given, using the sx()-function
 #'          in the formular, e.g. y ~ sx(x1, gamma = c(rep(1, 5))).
-#' @param kappa Start value for kappa, given as a list and double/float value.
-#' @param kappa_values Coefficients for kappa, given as list within as vector c(kappa_a, kappa_b).
+#' @param ka_start Start value for kappa, given as a list and double/float value.
+#' @param ka_values Coefficients for kappa, given as list within as vector c(kappa_a, kappa_b).
 #' @param solver List of the solvers ("rue" or "lanczos") for sampling from a gaussian distribution, i.e. gamma ~ N(eta, Q)
 #'          with Q as precision matrix. Can be choosen in sx()-function.
-#' @param family Can currently only be "binomial" or "poisson"
+#' @param lin_constraint Specify if a linear constraint for the coefficient is needed. 
+#'          Given as list with "TRUE" or "FALSE" values. Can be choosen in sx()-function.
+#' @param family Can currently only be "binomial" or "poisson".
 #' @param link Link need to be chooses correspondingly to the family function. If
 #'          family = "binomial", please choose link = "logit" or if family = "poisson", 
 #'          please choose link = "log". Currently no other link function is present.
 #' @param nIter Number of iterations for MCMC-algorithm
 #' @param Ntrials Number of trails, only interesting for binomial distribution
 #' @param m Number of maximal Lanczos-iterations
-#' @param thr threshold when the Lanczos-algorithm should stop
+#' @param thr threshold when the Lanczos-algorithm or conjugate gradient-algorithm should stop
 #' 
 #' @return Return a list of values:
 #' "coef_results" = result of the estimated coefficient, output given as matrix;
-#' "kappa_result" = result of the estimated kappa (precision) parameters, output given as vector
+#' "kappa_result" = result of the estimated kappa (precision) parameters, output given as vector;
+#' "accept_rate" = acceptance rate for each coefficient;
+#' "lanzcos_iterations" = number of the lanczos-iteration in each step.
 #' 
 #' @export
-sarim_mcmc <- function(y, eta_first, Z, K, gamma, ka_start, ka_values, solver, family, link, nIter, Ntrials, m, thr, display_progress = TRUE, constraint = "No") {
-    .Call('_Sarim_sarim_mcmc', PACKAGE = 'Sarim', y, eta_first, Z, K, gamma, ka_start, ka_values, solver, family, link, nIter, Ntrials, m, thr, display_progress, constraint)
+sarim_mcmc <- function(y, Z, K, K_rank, gamma, ka_start, ka_values, solver, lin_constraint, family, link, Ntrials, nIter, m, thr, display_progress = TRUE) {
+    .Call('_Sarim_sarim_mcmc', PACKAGE = 'Sarim', y, Z, K, K_rank, gamma, ka_start, ka_values, solver, lin_constraint, family, link, Ntrials, nIter, m, thr, display_progress)
 }
 

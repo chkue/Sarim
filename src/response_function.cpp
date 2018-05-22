@@ -20,28 +20,33 @@
 // This file contains:
 // -------------------
 //
-//   Declaration for iterative weighted least square functions
+//   Definition for iterative weighted least square functions
 //
 // Written by:
 //   Christopher Küster
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef IWLS_H_
-#define IWLS_H_
-
+// [[Rcpp::depends(RcppEigen)]]
 #include <RcppEigen.h>
+#include "response_function.hpp"
 
-struct IWLS {
-    Eigen::SparseMatrix<double> W;
-    Eigen::VectorXd y_tilde;
+
+// calculation of response function for log or logit
+Eigen::VectorXd response_function (const Eigen::VectorXd & eta, 
+                                   const std::string & link) {
+    Eigen::VectorXd out;
+    
+    // log-function for poisson model
+    if (link == "log") {
+        out = eta.array().exp();
+    }
+    
+    // logit-function for binomial model
+    if (link == "logit") {
+        out = 1 / (1 + (-eta).array().exp() );
+    }
+    
+    return out;
 };
 
-
-IWLS compute (const Eigen::VectorXd & y, 
-              const Eigen::VectorXd & eta, 
-              const std::string & fam, 
-              const std::string & link,
-              const double & Ntrials);
-
-#endif // IWLS_H_

@@ -31,6 +31,7 @@
 #include <RcppEigen.h>
 #include "log_likelihood.hpp"
 #include "iwls.hpp"
+#include "response_function.hpp"
 
 
 // Compute the loglikelihood depending on the family and link function 

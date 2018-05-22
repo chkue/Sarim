@@ -20,10 +20,13 @@
 // This file contains:
 // -------------------
 //
-//   Declaration for miscellaneous function need by sarim
+//   Definition for miscellaneous function need by sarim
+//      Include:
+//          - Incomplete Cholesky for Lanczos-Approximation
+//          - Random number samples for gaussian, gamma and uniform distributions
 //
 // Written by:
-//  Christopher Küster
+//   Christopher Küster
 //
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -32,8 +35,6 @@
 
 #include <RcppEigen.h>
 #include <random>
-
-unsigned int rank_calculation (const Eigen::SparseMatrix<double> & M);
 
 Eigen::SparseMatrix<double> ichol (const Eigen::SparseMatrix<double> & Q);
 

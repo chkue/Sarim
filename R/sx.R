@@ -13,6 +13,7 @@
 #' @param ka_start starting value for kappa .
 #' @param ka_a a value for sampling form priori kappa~Ga(ka_a, ka_b), see kappa.
 #' @param ka_b a value for sampling form priori kappa~Ga(ka_a, ka_b), see kappa.
+#' @param linear_constraint apply a linear constraint if it needed.
 #' @param gamma optional starting values for coefficent of gamma, the length(gamma)  
 #' should be the same as the columns of x, i.e. the number knots, which are  
 #' choosen in this sx-function.
@@ -24,8 +25,8 @@
 #' 
 #' @export
 sx <- function(x = x, knots = 5, penalty = "rw2", degree = 3, solver = "rue", 
-               ka_start = 1, ka_a = 1, ka_b = 0.0001,
-               gamma = NULL, Z = NULL, K = NULL, ...) {
+               ka_start = 1, ka_a = 1, ka_b = 0.0001, linear_constraint = "FALSE",  
+               gamma = NULL, Z = NULL, K = NULL) {
     require(Matrix)
     penlist <- list("identity", "rw1", "rw2", "gmrf")
     if (!is.element(penalty, penlist)) 
@@ -33,8 +34,11 @@ sx <- function(x = x, knots = 5, penalty = "rw2", degree = 3, solver = "rue",
     
     solvlist <- list("rue", "lanczos")
     if (!is.element(solver, solvlist)) 
-        stop('The solver is unknown, use "rue" (as default) or "lanczos", 
-             iff Z is a BIG MATRIX ')
+        stop('The solver is unknown, use "rue" (as default) or "lanczos", iff Z is a BIG matrix ')
+    
+    constraintlist <- list("TRUE", "FALSE")
+    if (!is.element(linear_constraint, constraintlist)) 
+        stop('Linear constraint can only be "TRUE" or "FALSE" ')
     
     if ( (knots == 1) && (is.null(Z)) ) {
         mat <- as.matrix(x)
@@ -68,6 +72,7 @@ sx <- function(x = x, knots = 5, penalty = "rw2", degree = 3, solver = "rue",
     attr(mat, "ka_a") <- ka_a
     attr(mat, "ka_b") <- ka_b
     attr(mat, "solver") <- solver
+    attr(mat, "linear_const") <- linear_constraint
     
     if (!is.null(gamma)) {
         if (is.null(attr(mat, "Z"))) {

@@ -21,9 +21,12 @@
 // -------------------
 //
 //   Definition for miscellaneous function need by sarim
+//      Include:
+//          - Incomplete Cholesky for Lanczos-Approximation
+//          - Random number samples for gaussian, gamma and uniform distributions
 //
 // Written by:
-//  Christopher Küster
+//   Christopher Küster
 //
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -34,20 +37,14 @@
 #include <random>
 #include "misc.hpp"
 
-// function to calculate the rank of a matrix
-// need to sample from a kappa distribution
-unsigned int rank_calculation (const Eigen::SparseMatrix<double> & M) {
-    Eigen::SparseQR<Eigen::SparseMatrix<double>, Eigen::COLAMDOrdering<int> > qr_decomp(M);
-    unsigned int rank = qr_decomp.rank();
-    return rank;
-};
 
 // function to calculate the incomplete cholesky decomposition, return a sparse matrix
-// need from lanczos algorithm
+// need for lanczos algorithm
 Eigen::SparseMatrix<double> ichol (const Eigen::SparseMatrix<double> & Q) {
     Eigen::IncompleteCholesky<double> icholOfQ(Q);
     return icholOfQ.matrixL();
 };
+
 
 // faster C++-sampling from a gamma distribution
 Eigen::VectorXd random_gamma (const int & n, const double & shape, const double & scale) {
@@ -63,6 +60,7 @@ Eigen::VectorXd random_gamma (const int & n, const double & shape, const double 
     }
     return e;
 };
+
 
 // faster C++-sampling from a gaussian distribution
 Eigen::VectorXd random_gauss (const int & n)
@@ -80,6 +78,7 @@ Eigen::VectorXd random_gauss (const int & n)
     return e;
 };
 
+
 // faster C++-sampling from a uniform distribution
 Eigen::VectorXd random_uniform (const int & n) {
     Eigen::VectorXd e(n);
@@ -94,4 +93,5 @@ Eigen::VectorXd random_uniform (const int & n) {
     }
     return e;
 };
+
 #endif // RUE_H_

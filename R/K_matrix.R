@@ -17,13 +17,13 @@ K_matrix <- function(dimension, penalty, data) {
     # Random Walk 1st order
     if (penalty == "rw1") {
         P <- diff(.symDiagonal(dimension), differences = 1)
-        S <- crossprod(P, P)
+        S <- Matrix::crossprod(P, P)
     }
     
     # Random Walk 2nd order
     if (penalty == "rw2") {
         P <- diff(.symDiagonal(dimension), differences = 2)
-        S <- crossprod(P, P)
+        S <- Matrix::crossprod(P, P)
     } 
     
     # Gaussian Markov random field
